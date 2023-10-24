@@ -1,7 +1,7 @@
 import requests, sys
 
 def check(ips: [str]) -> [str]:
-    ''' Receives a list of ips, returns a list of ips with geo. '''
+    ''' Receives a list of ips, returns a list of geo. '''
     ips_out = []
 
     ips_len = len(ips)
@@ -26,6 +26,8 @@ def main():
         exit(1)
     
     ips = []
+
+    # Separate the ip:port lines and make a list [['ip', 'port'],...]
     with open(sys.argv[1]) as f:
         for ip in f.readlines():
             if ip[0] == ' ':
@@ -41,6 +43,7 @@ def main():
     
     geo = check([f for f,_ in ips])
 
+    # Record data in the "ip:port geo" format.
     with open(sys.argv[2], 'w') as f:
         for i in range(len(ips)):
             f.write(f'{ips[i][0]}:{ips[i][1]} {geo[i]}')
