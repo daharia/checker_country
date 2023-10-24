@@ -12,10 +12,11 @@ def check(ips: [str]) -> [str]:
 
         ret = requests.get(url)
         if ret.status_code != 200:
-            print(ip, ret.status_code)
-            continue
-        
-        ips_out.append(ret.text.split('\n')[0])
+            geo = 'ERROR'
+        else:
+            geo = ret.text.split(' ')[1]
+
+        ips_out.append(geo)
 
     return ips_out
 
@@ -33,16 +34,16 @@ def main():
                 ip = ip[:-1]
 
             ip = ip.split(':')
-            if type(ip) == type(list):
-                ip = ip[0]
+            if len(ip) < 2:
+                ip.append('0')
 
-            ips.append(str(ip[0]))
+            ips.append(ip)
     
-    ips = check(ips)
+    geo = check([f for f,_ in ips])
 
     with open(sys.argv[2], 'w') as f:
-        for ip in ips:
-            f.write(ip + '\n')
+        for i in range(len(ips)):
+            f.write(f'{ips[i][0]}:{ips[i][1]} {geo[i]}')
 
 if __name__ == '__main__':
     main()
