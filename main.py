@@ -1,22 +1,30 @@
 import requests, sys
 
-def check(ips: [str]) -> [str]:
-    ''' Receives a list of ips, returns a list of geo. '''
+def devide_chunks(l: [str]) -> [str]:
+    CHUNK = 20
+    for i in range(0, len(l), CHUNK):
+        yield l[i:i + CHUNK]
+
+
+def check(ips_in: [str]) -> [str]:
+    ''' Receives a list of ips, returns a list of ip:geo. '''
     ips_out = []
 
-    ips_len = len(ips)
+    ips_len = len(ips_in)
     print('Len of list ips:', ips_len)
 
-    for ip in ips:
-        url = f'https://get.geojs.io/v1/ip/country?ip={ip}'
+    for ips in devide_chunks(ips_in):
+        url = f'https://get.geojs.io/v1/ip/country?ip=' + ','.join(ips)
 
         ret = requests.get(url)
         if ret.status_code != 200:
-            geo = 'ERROR'
+            geo = []
+            for ip in ips:
+                geo.append(ip + ':ERROR' )
         else:
-            geo = ret.text.split(' ')[1]
-
-        ips_out.append(geo)
+            geo = ret.text.split('\n')
+        
+        ips_out.append(geo[:-1])
 
     return ips_out
 
@@ -29,24 +37,22 @@ def main():
 
     # Separate the ip:port lines and make a list [['ip', 'port'],...]
     with open(sys.argv[1]) as f:
-        for ip in f.readlines():
-            if ip[0] == ' ':
-                ip = ip[1:]
-            if ip[-1] == '\n':
-                ip = ip[:-1]
+        from re import findall
 
-            ip = ip.split(':')
-            if len(ip) < 2:
-                ip.append('0')
+        data = f.read()
 
-            ips.append(ip)
+        ips = findall(r'\b(?:[1-2]?[0-9]{1,2}\.){3}[1-2]?[0-9]{1,2}\:(?:[0-9]){1,5}\b', data)
     
-    geo = check([f for f,_ in ips])
+    ip = [ip_port.split(':')[0] for ip_port in ips]
+    ip_geos = check(ip)
 
-    # Record data in the "ip:port geo" format.
     with open(sys.argv[2], 'w') as f:
-        for i in range(len(ips)):
-            f.write(f'{ips[i][0]}:{ips[i][1]} {geo[i]}')
+        for ip_geo in ip_geos:
+            port = [ip_port.split(':')[1] for ip_port in ips]
+            geo = [geo.split(':')[1] for geo in ip_geo]
+
+            for i in range(len(ip_geo)):
+                f.write(f'{ip[i]}:{port[i]} {geo[i]}\n')
 
 if __name__ == '__main__':
     main()
